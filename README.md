@@ -1,81 +1,40 @@
-# Parametric Grain-Price Insurance + Local Data DAO
+# Parametric Staple-Price Protection
 
-Engineering scaffold for a **dual-trigger parametric insurance** product that protects the real purchasing power of food-insecure households (net food consumers and smallholders) against grain-price shocks.
+**Corrected, real-data-calibrated design** for protecting food-insecure households against maize-price shocks in Malawi, Kenya and Ethiopia.
 
-**Important caveat (from critical review):**  
-The current simulation has a known economic inversion (frequent small payouts, max payout < annual premium). It is useful as a code skeleton and design mapping, but **not** as evidence that the product “works”. See the critique section and recommended fixes below.
+The earlier synthetic simulation (still present in the root for historical reference) had inverted economics and the wrong objective. All current results live in the **`deinsurance/`** folder.
 
-## Contents
+## Start here
 
-### Core Simulation
-| File | Description |
-|------|-------------|
-| `parametric_insurance_sim.py` | Main 20-year multi-region simulation (dual trigger, micropayments, donor match, forward contributions) |
-| `optimize_triggers_premium.py` | Grid search + Differential Evolution for trigger thresholds & premium loading |
-| `local_data_dao_sim.py` | Crowdsourced micro-index + peer verification + Schelling incentives |
-| `trigger_premium_opt_top.csv` | Top parameter combinations from optimization |
-| `local_dao_logs.csv` | Logs from Local Data DAO runs |
+→ **[deinsurance/RESULTS_SUMMARY.md](deinsurance/RESULTS_SUMMARY.md)**  
+Optimal regions · Pricing · Parameters · Fund composition · Blockchain role
 
-### Design Notes
-| File | Description |
-|------|-------------|
-| `local_data_dao_design.md` | Local micro-index DAO mechanism, Schelling rewards, integration notes |
-| `onocoy_integration_and_ui.md` | Onocoy (DePIN GNSS) linkage ideas + simple UI / proxy wallet design |
+→ **[deinsurance/README.md](deinsurance/README.md)**  
+Quick results table and how to reproduce the Monte Carlo
 
-### UI & Presentation
-| File | Description |
-|------|-------------|
-| `ui_mock/index.html` | Mobile-first mock (insurance status + Data DAO upload/verify/earn + agent mode) |
-| `Parametric_Insurance_Presentation.pptx` | 14-slide deck summarizing the design + simulation results |
-| `presentation.js` | Source used to generate the PPTX |
+→ **[deinsurance/simulation-report.md](deinsurance/simulation-report.md)** (full technical report)  
+→ **[deinsurance/staple-price-protection-concept.md](deinsurance/staple-price-protection-concept.md)** (concept paper)
 
-### Data / Plots (generated)
-- `simulation_overview.png`, `cumulative_flows.png`
-- `sim_data.npz`, `local_dao_data.npz`
+## Headline numbers (1 000 runs × 25 years, WFP-calibrated)
 
-## Key Design Elements (as implemented)
+| Metric | Value |
+|--------|-------|
+| Expected loss / hh / yr | Malawi $97 · Kenya $26 · Ethiopia $37 |
+| Net premium (50 % subsidy) | $66 / $18 / $25 |
+| Take-up (endogenous) | 28 % / 60 % / 57 % |
+| Distress-event reduction | **–55 %** |
+| P(insolvency 25 y) with full stack | **0.4 %** |
+| Without contingent credit | 18.7 % |
 
-- **Dual trigger**: Leading (satellite composite) → partial payout; Confirming (price / wage-to-grain) → top-up
-- Multi-region diversification (Kenya Rift / Malawi Central / Ethiopia Oromia)
-- Micropayments via stablecoin + optional pay-at-harvest style
-- Quadratic-style donor matching to improve take-up
-- Forward contributions from exporters (currently simplified)
-- Local Data DAO for micro-index (intended as complement to satellite)
+## Design principles now implemented
 
-## Known Limitations (Critical Review Summary)
+1. Tail-weighted payouts (attachment 1.25, cap 2.25, sum insured ≈ $390)
+2. Correct objective: reduction in irreversibility-risk (distress) events
+3. Full Monte Carlo with Horn-cluster tail dependence + global food-crisis regime
+4. Endogenous take-up from literature price elasticities
+5. Four-layer capital stack including CAT-DDO-style contingent credit
+6. Blockchain used only as trigger-bound escrow and stack-composition substrate
 
-1. **Economic inversion**: Max payout ($84–95) < annual premium ($159–181). Expected annual payout ≈ $127 implies frequent small triggers rather than true tail protection.
-2. Primary metric used (CV of net cost) is secondary; the correct objective (“probability of severe shortfall / irreversible coping”) showed almost no improvement.
-3. Single-run point estimates only — no Monte Carlo, no crisis-regime correlation, no reinsurance layer.
-4. Take-up (42%) treated as exogenous despite high effective premium.
-5. Local Data DAO currently has a conflict-of-interest risk if used for settlement triggers (beneficiaries reporting inputs that affect their own payouts). Better kept as audit / cross-validation layer.
-6. Synthetic data only; no real FEWS NET / WFP / CHIRPS calibration yet.
+## Legacy material (root)
 
-## Recommended Next Steps (Priority Order)
-
-1. Invert payout structure → true tail (higher attachment, max payout several× premium).
-2. Change objective function to severe-shortfall probability reduction.
-3. Full Monte Carlo + state-dependent correlation (t-copula / regime switching) + report P(ruin).
-4. Endogenize take-up = f(net premium) using literature elasticities.
-5. Properly price forward/option contributions from suppliers.
-6. Demote Local Data DAO from settlement oracle to verification/audit role.
-7. Re-calibrate on real price & weather series.
-
-## How to Run
-
-```bash
-# Main insurance simulation
-python parametric_insurance_sim.py
-
-# Trigger / premium optimization
-python optimize_triggers_premium.py
-
-# Local Data DAO (Schelling micro-index)
-python local_data_dao_sim.py
-```
-
-Open `ui_mock/index.html` in a browser for the interactive mock.
-
-## License / Status
-
-Private engineering prototype. Not production-ready. Built for design exploration and rapid iteration.
+The original synthetic simulation, Local Data DAO experiments, UI mock and Onocoy notes remain in the repository root for reference. They are superseded by the `deinsurance/` package for any feasibility claim.
