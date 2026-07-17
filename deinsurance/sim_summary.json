@@ -1,0 +1,44 @@
+{
+ "EL_hh": {
+  "malawi": 97.3,
+  "kenya": 26.3,
+  "ethiopia": 37.1
+ },
+ "premium_gross_hh": {
+  "malawi": 131.3,
+  "kenya": 35.5,
+  "ethiopia": 50.0
+ },
+ "premium_net_hh": {
+  "malawi": 65.7,
+  "kenya": 17.7,
+  "ethiopia": 25.0
+ },
+ "net_share_of_spend": {
+  "malawi": 0.101,
+  "kenya": 0.027,
+  "ethiopia": 0.038
+ },
+ "takeup": {
+  "malawi": 0.28,
+  "kenya": 0.6,
+  "ethiopia": 0.57
+ },
+ "insured_hh": {
+  "malawi": 2805,
+  "kenya": 6006,
+  "ethiopia": 5660
+ },
+ "pool_annual_premium_$": 864739.0,
+ "reinsurance_premium_$": 110309.0,
+ "loss_ratio_median": 0.74,
+ "loss_ratio_p95": 1.02,
+ "P_insolvency_25y_with_reins": 0.004,
+ "P_insolvency_25y_no_reins": 0.035,
+ "P_insolvency_horn_only_pool": 0.0,
+ "P_facility_drawn": 0.097,
+ "facility_draw_p95_$": 601357.0,
+ "distress_events_per_cty_yr_uninsured": 0.058,
+ "distress_events_per_cty_yr_insured": 0.026,
+ "distress_reduction_pct": 55.4
+}
