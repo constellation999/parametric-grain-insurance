@@ -1,0 +1,16 @@
+{
+  "name": "grainshield-hedera-poc",
+  "version": "1.0.0",
+  "description": "GrainShield dual-trigger parametric insurance - Hedera PoC (DDiB 2026)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:hedera": "hardhat run scripts/deploy.js --network hederaTestnet",
+    "demo:hedera": "hardhat run scripts/demo.js --network hederaTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0",
+    "dotenv": "^16.4.0"
+  }
+}
