@@ -1,69 +1,47 @@
-# GrainShield — Hedera PoC (DDiB 2026)
-
-Dual-trigger parametric insurance の5コンポーネント(deck §3 アーキテクチャ)を Solidity で実装し、Hedera Testnet(EVM互換)にデプロイする PoC。
-
-```
 contracts/
-  MockUSD.sol        テスト用ステーブルコイン(本番は Stablecoin Studio / HTS に置換)
-  PolicyRegistry.sol アグリゲータ経由の加入、Buyer/Seller 2クラス、sum insured
-  TriggerOracle.sol  2段階ステートマシン(衛星 Stage1 → エンタイトルメント中央値 Stage2)
-  PremiumStream.sol  収入連動0.5%スキム + 危機時の自動プレミアム免除
-  EscrowVault.sol    ドナー3トランシェ、トリガー拘束リリース(管理者引き出し関数なし)
-  PayoutRouter.sol   pay = S·max(0, min(r,2.25)−1.25)、ウォーターフォール充当
+  MockUSD.sol        Test stablecoin (replaced by Stablecoin Studio / HTS in production)
+  PolicyRegistry.sol Aggregator-mediated enrollment, Buyer/Seller classes, sum insured
+  TriggerOracle.sol  Two-stage state machine (satellite Stage 1 → entitlement-median Stage 2)
+  PremiumStream.sol  Income-linked 0.5% skim + automatic premium waiver during crises
+  EscrowVault.sol    Three donor tranches, trigger-bound release (no admin withdrawal function)
+  PayoutRouter.sol   pay = S·max(0, min(r, 2.25) − 1.25), waterfall funding
 scripts/
-  deploy.js          6コントラクトのデプロイ + 循環参照の配線
-  demo.js            加入→スキム→Stage1早期支払→免除→Stage2本支払 の一気通貫デモ
-```
+  deploy.js          Deploys all six contracts + wires circular references
+  demo.js            End-to-end demo: enroll → skim → Stage-1 early payout → waiver → Stage-2 main payout
+Deployment Guide (Hedera Testnet)
+0. Prerequisites
 
-## デプロイ手順(Hedera Testnet)
+Node.js 18+
+Hedera Portal account: https://portal.hedera.com
 
-### 0. 前提
-- Node.js 18+
-- Hedera Portal アカウント: https://portal.hedera.com
+1. Create a testnet account (important: ECDSA)
 
-### 1. テストネットアカウント作成(重要: ECDSA)
-1. Portal で Testnet アカウントを作成。**鍵タイプは ECDSA を選択**(ED25519 は EVM ツールチェーンで使えない)
-2. HEX Encoded Private Key をコピー
-3. Portal が 1000 test HBAR を自動付与(足りなければ faucet.hedera.com — ガスは数 HBAR で十分)
+Create a Testnet account on the Portal. Select ECDSA as the key type (ED25519 does not work with the EVM toolchain)
+Copy the HEX Encoded Private Key
+The Portal automatically grants 1,000 test HBAR (top up at faucet.hedera.com if needed — a few HBAR covers all gas)
 
-### 2. セットアップ
-```bash
-npm install
-cp .env.example .env   # OPERATOR_PRIVATE_KEY を記入
+2. Setup
+bashnpm install
+cp .env.example .env   # fill in OPERATOR_PRIVATE_KEY
 npx hardhat compile
-```
+3. Deploy
+bashnpx hardhat run scripts/deploy.js --network hederaTestnet
+Copy the six printed addresses into MOCKUSD/REGISTRY/... in .env.
+4. Verification (a demo you can show on HashScan)
+bashnpx hardhat run scripts/demo.js --network hederaTestnet
+Then search for the deployer address at https://hashscan.io/testnet →
+the event sequence EarlyPayoutTriggered / PremiumWaived / MainPayoutConfirmed / MainPayout serves directly as screenshot material for the presentation.
+Troubleshooting
 
-### 3. デプロイ
-```bash
-npx hardhat run scripts/deploy.js --network hederaTestnet
-```
-出力された6アドレスを `.env` の MOCKUSD/REGISTRY/... に記入。
+insufficient funds → HBAR balance too low; use faucet.hedera.com
+Nonce errors / timeouts → Hashio is a public relay; wait a few seconds and retry, or switch HEDERA_RPC_URL to an alternative relay such as Arkhia
+Deployment fails with an ED25519 key → recreate the account with ECDSA (the most common pitfall)
 
-### 4. 動作確認(HashScan で見せられるデモ)
-```bash
-npx hardhat run scripts/demo.js --network hederaTestnet
-```
-その後 https://hashscan.io/testnet でデプロイヤーアドレスを検索 →
-`EarlyPayoutTriggered` / `PremiumWaived` / `MainPayoutConfirmed` / `MainPayout` の
-イベント列がそのままプレゼンのスクリーンショット素材になる。
+Design-to-Code Mapping (for the report / presentation)
+Design claimImplementation in code"No admin function can divert funds"EscrowVault has no owner-withdraw; release sends only to the immutable router address and requires oracle.isCrisisActive"No single feed can fire a payout"TriggerOracle: median over MIN_REPORTS = 3, and Stage 2 is only accepted while Stage 1 is active (conjunction)Premium waiver by codeDuring a crisis, PremiumStream.onIncomeEvent transfers nothing and emits PremiumWaived"No claims, no adjusters"PayoutRouter's execute* functions are permissionless (anyone-can-call keeper pattern)Waterfall_fund(): own reserves → Seed → PremiumMatch → ContingentCreditWhy HederaUSD-denominated fixed sub-cent fees make the $0.03/day skim economically viable (the fee-floor argument)
+Gaps vs. Production (for the report's limitations section)
 
-### トラブルシューティング
-- `insufficient funds` → HBAR残高不足。faucet.hedera.com
-- nonce エラー / タイムアウト → Hashio は公開リレー。数秒待ってリトライ、または `HEDERA_RPC_URL` を Arkhia 等の代替リレーに変更
-- ED25519 鍵でデプロイ失敗 → ECDSA アカウントを作り直す(最頻出のハマりポイント)
-
-## 設計上の対応関係(レポート/プレゼン用)
-| デッキの主張 | コード上の実装 |
-|---|---|
-| "no admin function can divert funds" | EscrowVault に owner-withdraw が存在しない。release は immutable な router 宛のみ + `oracle.isCrisisActive` 必須 |
-| "no single feed can fire a payout" | TriggerOracle: MIN_REPORTS=3 の中央値、かつ Stage1 が active でないと Stage2 を受理しない(conjunction) |
-| premium-waiver-by-code | PremiumStream.onIncomeEvent が危機中は転送せず PremiumWaived を emit |
-| "no claims, no adjusters" | PayoutRouter の execute* は permissionless(誰でも実行可能な keeper パターン) |
-| ウォーターフォール | _fund(): 自己準備金 → Seed → PremiumMatch → ContingentCredit |
-| Hedera 選定理由 | 手数料がUSD建て固定サブセント → $0.03/日のスキムが成立(fee-floor 論法) |
-
-## 本番との差分(レポートの limitations に書く)
-- MockUSD → Stablecoin Studio の HTS トークン(KYC/freeze フラグ)
-- Reporter を管理者登録 → HCS トピックの順序付きアテステーション
-- 手動 resetRegion / resetAnnual → epoch ベースの自動化
-- ヘッジャーキャップ・再保険回収はオフチェーンレッグ(エスクロートランシェで代理)
+MockUSD → an HTS token issued via Stablecoin Studio (KYC / freeze flags)
+Admin-registered reporters → ordered attestations on an HCS topic
+Manual resetRegion / resetAnnual → epoch-based automation
+Hedger caps and reinsurance recovery are off-chain legs (represented by escrow tranches in the PoC)
